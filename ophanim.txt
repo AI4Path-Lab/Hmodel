@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================
+# Ophanim Pipeline: Gene → Morphology Alignment
+# ============================================================
+
+# -------- required arguments --------
+EXPR=${EXPR:?Set EXPR path}
+SUBTYPES=${SUBTYPES:?Set SUBTYPES path}
+FOLDS_DIR=${FOLDS_DIR:?Set FOLDS_DIR}
+EMB_DIR=${EMB_DIR:?Set EMB_DIR}
+OUTDIR=${OUTDIR:?Set OUTDIR}
+
+# -------- scripts --------
+GENE_SCRIPT=${GENE_SCRIPT:-scripts/run_random_modules.sh}
+MORPH_SCRIPT=${MORPH_SCRIPT:-morph_gene_aligned_full.py}
+
+PYTHON=${PYTHON:-python3}
+
+mkdir -p "${OUTDIR}"
+
+echo "=============================================="
+echo "STEP 1: Gene module discovery"
+echo "=============================================="
+
+export EXPR SUBTYPES
+export OUTDIR="${OUTDIR}/gene_modules"
+
+bash "${GENE_SCRIPT}"
+
+echo "=============================================="
+echo "STEP 2: Morphology–gene alignment model"
+echo "=============================================="
+
+${PYTHON} "${MORPH_SCRIPT}" \
+  --folds_dir "${FOLDS_DIR}" \
+  --emb_root "${EMB_DIR}" \
+  --gene_net_dir "${OUTDIR}/gene_modules" \
+  --outdir "${OUTDIR}/morph_align"
+
+echo "=============================================="
+echo "PIPELINE COMPLETE"
+echo "=============================================="

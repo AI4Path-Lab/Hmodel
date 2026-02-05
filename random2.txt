@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================
+# Random Gene Module Discovery (Git-friendly)
+# ============================================================
+
+# -------- required arguments --------
+EXPR=${EXPR:?Set EXPR path to expression matrix}
+SUBTYPES=${SUBTYPES:?Set SUBTYPES path to subtype file}
+OUTDIR=${OUTDIR:?Set OUTDIR for outputs}
+
+# -------- optional configuration --------
+PY_SCRIPT=${PY_SCRIPT:-random3.py}
+
+SUBTYPE_COL=${SUBTYPE_COL:-Subtype}
+SUBTYPE_SAMPLE_COL=${SUBTYPE_SAMPLE_COL:-Sample}
+SUBTYPE_POS=${SUBTYPE_POS:-Classical}
+SUBTYPE_NEG=${SUBTYPE_NEG:-Basal-like}
+
+SUBSET_SIZE=${SUBSET_SIZE:-200}
+N_ITERS=${N_ITERS:-3000}
+TARGET_AUC=${TARGET_AUC:-0.85}
+
+MIN_NON_NA=${MIN_NON_NA:-2}
+ABS_MIN=${ABS_MIN:-0.0}
+TOPK_EDGES=${TOPK_EDGES:-0}
+
+MIN_MEDIAN_EXPR=${MIN_MEDIAN_EXPR:-1.0}
+MIN_VAR=${MIN_VAR:-0.0}
+
+SEED=${SEED:-1337}
+
+PYTHON=${PYTHON:-python3}
+
+mkdir -p "${OUTDIR}"
+
+echo "[INFO] Running random gene module discovery"
+echo "[INFO] Output dir: ${OUTDIR}"
+
+# ------------------------------------------------------------
+# Execution (SLURM-aware but not SLURM-dependent)
+# ------------------------------------------------------------
+if command -v srun &> /dev/null; then
+  RUNNER="srun --cpu-bind=cores -u"
+else
+  RUNNER=""
+fi
+
+${RUNNER} ${PYTHON} "${PY_SCRIPT}" \
+  --expr "${EXPR}" \
+  --subtypes "${SUBTYPES}" \
+  --subtype_col "${SUBTYPE_COL}" \
+  --subtype_sample_col "${SUBTYPE_SAMPLE_COL}" \
+  --subtype_pos "${SUBTYPE_POS}" \
+  --subtype_neg "${SUBTYPE_NEG}" \
+  --subset_size "${SUBSET_SIZE}" \
+  --n_iters "${N_ITERS}" \
+  --target_auc "${TARGET_AUC}" \
+  --min_non_na "${MIN_NON_NA}" \
+  --abs_min "${ABS_MIN}" \
+  --top_k_edges "${TOPK_EDGES}" \
+  --min_median_expr "${MIN_MEDIAN_EXPR}" \
+  --min_var "${MIN_VAR}" \
+  --seed "${SEED}" \
+  --outdir "${OUTDIR}"
+
+echo "[OK] Random module search complete"
